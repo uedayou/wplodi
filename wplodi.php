@@ -2,7 +2,7 @@
 /*
   Plugin Name: WP LODI
   Plugin URI: 
-  Description: WordPressのカスタムフィールドをコンテントネゴシエーションによりRDFデータを返す(wp-linked-data拡張)
+  Description: Linked Data WordPress Plugin
   Version: 0.0.1
   Author: uedayou
   Author URI: http://uedayou.net/
