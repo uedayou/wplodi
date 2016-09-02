@@ -21,9 +21,9 @@ wp-linked-data と異なる点は以下の2つです。
 
 を入力してください。
 
-※1:[EasyRDF:RdfNamespace](https://github.com/njh/easyrdf/blob/master/lib/RdfNamespace.php)の`$initial_namespaces`で設定されているPrefixと、[共通語彙基盤](http://imi.ipa.go.jp/ns/core/rdf#)「`ic:`」については、Prefixによる省略表記(たとえば`rdfs:label`)が利用できるはずです。
+※1:[EasyRDF:RdfNamespace](https://github.com/njh/easyrdf/blob/master/lib/RdfNamespace.php)の`$initial_namespaces`で設定されているPrefixと、[共通語彙基盤](http://imi.ipa.go.jp/ns/core/rdf#)「`ic:`」については、Prefixによる省略表記(たとえば`rdfs:label`)が利用できます。
 
-※2:現在、文字列リテラルしか対応していません。
+※2:`http(s)://`で始まる文字列はリソースとして、数値、日付(Y-m-d)、日付と日時(Y-m-d H:i:s)に合致する文字列はそれぞれのデータ型が付与されたリテラルとして扱われます。それ以外は文字列リテラルとなります。
 
 ## 使い方
 
