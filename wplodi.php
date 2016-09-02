@@ -20,110 +20,145 @@ require_once WP_LINKED_DATA_PLUGIN_DIR_PATH.'service/UserProfileWebIdService.php
 
 class WPLODI {
 
-	protected $priorities = array(
-		'text/html',
-		'application/rdf+xml',
-		'application/xml',
-		'text/xml',
-		'text/rdf',
-		'application/n-triples',
-		'text/plain',
-		'text/turtle',
-		'application/x-turtle',
-		'application/turtle',
-		'text/n3',
-		'text/rdf+n3',
-		'application/rdf+n3',
-		'application/ld+json',
-		'application/json'
-		);
-	
-	private $webIdService;
+    protected $priorities = array(
+        'text/html',
+        'application/rdf+xml',
+        'application/xml',
+        'text/xml',
+        'text/rdf',
+        'application/n-triples',
+        'text/plain',
+        'text/turtle',
+        'application/x-turtle',
+        'application/turtle',
+        'text/n3',
+        'text/rdf+n3',
+        'application/rdf+n3',
+        'application/ld+json',
+        'application/json'
+        );
+    
+    private $webIdService;
 
     function __construct() {
-    	$this->registerRdfNamespaces ();
-    	add_action('wp', array($this, 'intercept'));
-    	$this->webIdService = new \org\desone\wordpress\wpLinkedData\UserProfileWebIdService();
+        $this->registerRdfNamespaces ();
+        add_action('wp', array($this, 'intercept'));
+        $this->webIdService = new \org\desone\wordpress\wpLinkedData\UserProfileWebIdService();
     }
 
     function intercept() {
-   		$negotiator = new \Negotiation\Negotiator();
-   		$acceptHeader = $_SERVER['HTTP_ACCEPT'];
-		try {
-			$mediaType = $negotiator->getBest($acceptHeader, $this->priorities);
-		} catch (Exception $e){
-			$mediaType = null;
-		}
+        $negotiator = new \Negotiation\Negotiator();
+        $acceptHeader = $_SERVER['HTTP_ACCEPT'];
+        try {
+            $mediaType = $negotiator->getBest($acceptHeader, $this->priorities);
+        } catch (Exception $e){
+            $mediaType = null;
+        }
 
-		if ($mediaType!=null) {
-			$format = $this->getFormat($mediaType->getValue());
-			// debug
-			//$format = "turtle";
-			// debug
-			if ($format!=null) { 
-				global $wp_query;
-				$graph = $this->buildGraph(get_queried_object(),$wp_query);
-				// output
-				$format = \EasyRdf\Format::getFormat($format);
-				$output = $graph->serialise($format);
-				header('Content-Type: '.$format->getDefaultMimeType());
-				echo $output;
-				exit;
-			}
-		}
+        if ($mediaType!=null) {
+            $format = $this->getFormat($mediaType->getValue());
+            // debug
+            //$format = "turtle";
+            // debug
+            if ($format!=null) { 
+                global $wp_query;
+                $graph = $this->buildGraph(get_queried_object(),$wp_query);
+                // output
+                $format = \EasyRdf\Format::getFormat($format);
+                $output = $graph->serialise($format);
+                header('Content-Type: '.$format->getDefaultMimeType());
+                echo $output;
+                exit;
+            }
+        }
     }
 
     function getFormat($value) {
-		$format = null;
-		if (preg_match("/xml/i", $value)) {
-			$format = "rdfxml";
-		}
-		else if ($value=="text/rdf") {
-			$format = "rdfxml";
-		}
-		else if (preg_match("/ld\+json/i", $value)) {
-			$format = "jsonld";
-		}
-		else if (preg_match("/json/i", $value)) {
-			$format = "json";
-		}
-		else if (preg_match("/turtle/i", $value)) {
-			$format = "turtle";
-		}
-		else if (preg_match("/plain/i", $value)) {
-			$format = "turtle";
-		}
-		else if (preg_match("/n3/i", $value)) {
-			$format = "n3";
-		}
-		else if (preg_match("/n-triples/i", $value)) {
-			$format = "ntriples";
-		}
-		return $format;
-	}
-	
-	private function buildGraphFromCustomField($post_resource) {
-		$fields=get_post_custom(); 
-		foreach($fields as $name => $value) {
-		    //if(preg_match("/^http:\/\//i", $name) && $name!== '' ) {
-		    if( $name!== '' ) {
-		    	foreach($value as $v) {
-		    		$post_resource->set($name, $v);
-		    	}
-		    }
-		}
-		return $post_resource;
-	}
-	
-	//
-	// from wp-linked-data plugin
-	// https://wordpress.org/plugins/wp-linked-data/
-	//
-	private function registerRdfNamespaces () {
-      \EasyRdf\RdfNamespace::set('bio', 'http://purl.org/vocab/bio/0.1/');
-      \EasyRdf\RdfNamespace::set('sioct', 'http://rdfs.org/sioc/types#');
+        $format = null;
+        if (preg_match("/xml/i", $value)) {
+            $format = "rdfxml";
+        }
+        else if ($value=="text/rdf") {
+            $format = "rdfxml";
+        }
+        else if (preg_match("/ld\+json/i", $value)) {
+            $format = "jsonld";
+        }
+        else if (preg_match("/json/i", $value)) {
+            $format = "json";
+        }
+        else if (preg_match("/turtle/i", $value)) {
+            $format = "turtle";
+        }
+        else if (preg_match("/plain/i", $value)) {
+            $format = "turtle";
+        }
+        else if (preg_match("/n3/i", $value)) {
+            $format = "n3";
+        }
+        else if (preg_match("/n-triples/i", $value)) {
+            $format = "ntriples";
+        }
+        return $format;
+    }
+    
+    private function buildGraphFromCustomField($post_resource) {
+        $fields=get_post_custom(); 
+        foreach($fields as $name => $value) {
+            //if(preg_match("/^http:\/\//i", $name) && $name!== '' ) {
+            if( $name!== '' ) {
+                foreach($value as $v) {
+                    if ($this->isResource($v)) {
+                        $post_resource->addResource($name, $v);
+                    } else {
+                        $post_resource->addLiteral($name, $this->modifyValueType($v));
+                    }
+                }
+            }
+        }
+        return $post_resource;
+    }
 
-      \EasyRdf\RdfNamespace::set('ic', "http://imi.ipa.go.jp/ns/core/rdf#");
+    private function isResource($value) {
+        if (filter_var($value, FILTER_VALIDATE_URL) && preg_match('@^https?+://@i', $value)) {
+            return true;
+        }
+        return false;
+    }
+
+    private function modifyValueType($value) {
+        if (is_numeric($value)) {
+            $fv = (float)$value;
+            if (floor($fv)===$fv) return (int)$fv;
+            else return (float)$value;
+        }
+        else if ($this->validateDate($value) ||
+                 $this->validateDate($value, 'Y-m-d\TH:i:sP') ||
+                 $this->validateDate($value, 'D, d M Y H:i:s O')
+                ) {
+            return \EasyRdf\Literal\DateTime::parse($value);
+        }
+        else if ($this->validateDate($value, 'Y-m-d')
+                ) {
+            return \EasyRdf\Literal\Date::parse($value);
+        }
+        return $value;
+    }
+
+    private function validateDate($date, $format = 'Y-m-d H:i:s'){
+        $_d = DateTime::createFromFormat($format, $date);
+        return $_d && $_d->format($format) == $date;
+    }
+
+    //
+    // from wp-linked-data plugin
+    // https://wordpress.org/plugins/wp-linked-data/
+    //
+    private function registerRdfNamespaces () {
+        \EasyRdf\RdfNamespace::set('bio', 'http://purl.org/vocab/bio/0.1/');
+        \EasyRdf\RdfNamespace::set('sioct', 'http://rdfs.org/sioc/types#');
+
+        \EasyRdf\RdfNamespace::set('ic', "http://imi.ipa.go.jp/ns/core/rdf#");
     }
 
     public function buildGraph($queriedObject, $wpQuery) {
@@ -141,8 +176,8 @@ class WPLODI {
         }
         return $this->buildGraphForAllPostsInQuery ($graph, $wpQuery);
     }
-	
-	private function buildGraphForPost ($graph, $post) {
+    
+    private function buildGraphForPost ($graph, $post) {
         $type = $this->getRdfTypeForPost ($post);
         $post_uri = $this->getPostUri ($post);
         $post_resource = $graph->resource ($post_uri, $type);
